@@ -2,9 +2,8 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, Calculator, ArrowLeftRight, TrendingUp, Wallet, Search } from "lucide-react"
+import { LayoutDashboard, Calculator, ArrowLeftRight, TrendingUp, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Input } from "@/components/ui/input"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -28,15 +27,7 @@ export function AppSidebar() {
         </div>
       </div>
 
-      <div className="p-4 border-b border-border">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search"
-            className="pl-9 bg-secondary border-border text-foreground placeholder:text-muted-foreground"
-          />
-        </div>
-      </div>
+      {/* Search removed per request */}
 
       <nav className="flex-1 p-4 space-y-1">
         {navigation.map((item) => {
