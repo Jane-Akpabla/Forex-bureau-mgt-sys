@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -108,10 +108,42 @@ const initialTransactions = [
 ]
 
 export function TransactionsContent() {
-  const [transactions, setTransactions] = useState(initialTransactions)
+  const [transactions, setTransactions] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
 
-  const handleTransactionAdded = (transaction: any) => {
-    setTransactions([transaction, ...transactions])
+  const loadTransactions = async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/transactions')
+      const json = await res.json()
+      if (json?.success && Array.isArray(json.items)) {
+        setTransactions(json.items)
+      } else {
+        setTransactions(initialTransactions)
+      }
+    } catch (e) {
+      console.error('[v0] failed to load transactions', e)
+      setTransactions(initialTransactions)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadTransactions()
+  }, [])
+
+  const handleTransactionAdded = async (transaction: any) => {
+    // After adding via API, reload the list from server to reflect DB state
+    await loadTransactions()
+  }
+
+  if (loading) {
+    return (
+      <div className="p-8">
+        <div className="text-center text-muted-foreground">Loading transactions...</div>
+      </div>
+    )
   }
 
   return (
@@ -170,17 +202,17 @@ export function TransactionsContent() {
                     <td className="p-4 text-sm text-foreground">{txn.customer}</td>
                     <td className="p-4">
                       <Badge variant="outline" className="border-border text-foreground">
-                        {txn.from}
+                        {txn.from || txn.from_currency}
                       </Badge>
                     </td>
                     <td className="p-4">
                       <Badge variant="outline" className="border-border text-foreground">
-                        {txn.to}
+                        {txn.to || txn.to_currency}
                       </Badge>
                     </td>
-                    <td className="p-4 text-right font-mono text-sm text-foreground">{txn.amount}</td>
-                    <td className="p-4 text-right font-mono text-sm text-foreground">{txn.converted}</td>
-                    <td className="p-4 text-right font-mono text-sm text-muted-foreground">{txn.rate}</td>
+                    <td className="p-4 text-right font-mono text-sm text-foreground">{typeof txn.amount === 'number' ? txn.amount.toFixed(2) : txn.amount}</td>
+                    <td className="p-4 text-right font-mono text-sm text-foreground">{typeof txn.converted === 'number' ? txn.converted.toFixed(2) : txn.converted}</td>
+                    <td className="p-4 text-right font-mono text-sm text-muted-foreground">{typeof txn.rate === 'number' ? txn.rate.toFixed(4) : txn.rate}</td>
                     <td className="p-4 text-center">
                       <Badge
                         variant={

@@ -82,32 +82,63 @@ export function SimpleAddTransaction({ onTransactionAdded }: SimpleAddTransactio
     try {
       // Generate transaction ID
       const transactionId = `TXN${Date.now().toString().slice(-6)}`
-      
+
       // Get current date and time
       const now = new Date()
       const date = now.toISOString().split('T')[0]
-      const time = now.toLocaleTimeString('en-US', { 
-        hour: '2-digit', 
+      const time = now.toLocaleTimeString('en-US', {
+        hour: '2-digit',
         minute: '2-digit',
-        hour12: true 
+        hour12: true,
       })
 
-      // Create transaction object
-      const transaction = {
+      // Create transaction object for display
+          const transaction = {
+            id: transactionId,
+            date,
+            time,
+            customer: formData.customerName,
+            from_currency: formData.fromCurrency,
+            to_currency: formData.toCurrency,
+            amount: Number(parseFloat(formData.amount).toFixed(2)),
+            converted: Number((convertedAmount ?? 0).toFixed(2)),
+            rate: Number((exchangeRate ?? 0).toFixed(4)),
+            status: 'completed',
+          }
+
+      // Build payload matching DB column names so Supabase inserts correctly
+      const payload = {
         id: transactionId,
         date,
         time,
         customer: formData.customerName,
-        from: formData.fromCurrency,
-        to: formData.toCurrency,
-        amount: parseFloat(formData.amount).toFixed(2),
-        converted: convertedAmount?.toFixed(2) || '0.00',
-        rate: exchangeRate?.toFixed(4) || '0.0000',
+        from_currency: formData.fromCurrency,
+        to_currency: formData.toCurrency,
+        amount: Number(parseFloat(formData.amount) || 0),
+        converted: Number(Number(convertedAmount || 0).toFixed(2)),
+        rate: Number(Number(exchangeRate || 0).toFixed(4)),
         status: 'completed',
       }
 
-      // Call the callback to add the transaction
-      onTransactionAdded(transaction)
+      // Persist to API first
+      try {
+        const res = await fetch('/api/transactions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        const json = await res.json()
+        if (json?.success) {
+          const created = json.item || payload
+          onTransactionAdded(created)
+        } else {
+          throw new Error(json?.error || 'Failed to create transaction')
+        }
+      } catch (err) {
+        console.error('API create transaction failed', err)
+        alert('Failed to create transaction on server; added locally')
+        onTransactionAdded(transaction)
+      }
 
       // Reset form and close dialog
       setFormData({

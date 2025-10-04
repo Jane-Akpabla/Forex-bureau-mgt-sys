@@ -41,23 +41,31 @@ function formatAmount(n: number) {
 }
 
 export function InventoryContent() {
-  const [inventory, setInventory] = React.useState<InventoryItem[]>(() => {
+  const [inventory, setInventory] = React.useState<InventoryItem[]>([])
+  const [loading, setLoading] = React.useState(true)
+
+  const loadInventory = async () => {
+    setLoading(true)
     try {
-      const raw = localStorage.getItem(INVENTORY_KEY)
-      if (raw) return JSON.parse(raw) as InventoryItem[]
+      const res = await fetch('/api/inventory')
+      const json = await res.json()
+      if (json?.success && Array.isArray(json.items)) {
+        setInventory(json.items)
+      } else {
+        // fallback to initial
+        setInventory(INITIAL_INVENTORY)
+      }
     } catch (e) {
-      // ignore
+      console.error('[v0] Failed to load inventory from API', e)
+      setInventory(INITIAL_INVENTORY)
+    } finally {
+      setLoading(false)
     }
-    return INITIAL_INVENTORY
-  })
+  }
 
   React.useEffect(() => {
-    try {
-      localStorage.setItem(INVENTORY_KEY, JSON.stringify(inventory))
-    } catch (e) {
-      console.error("Failed to persist inventory", e)
-    }
-  }, [inventory])
+    loadInventory()
+  }, [])
 
   const [open, setOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<InventoryItem | null>(null)
@@ -75,12 +83,23 @@ export function InventoryContent() {
     setOpen(true)
   }
 
-  const handleDelete = (code: string) => {
+  const handleDelete = async (code: string) => {
     if (!confirm(`Delete ${code} from inventory?`)) return
-    setInventory((prev) => prev.filter((i) => i.code !== code))
+    try {
+      const res = await fetch(`/api/inventory?code=${encodeURIComponent(code)}`, { method: 'DELETE' })
+      const json = await res.json()
+      if (json?.success) {
+        await loadInventory()
+      } else {
+        alert('Failed to delete item: ' + (json?.error || 'unknown'))
+      }
+    } catch (e) {
+      console.error('[v0] delete failed', e)
+      alert('Failed to delete item')
+    }
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     const code = form.code.trim().toUpperCase()
     const name = form.name.trim()
@@ -94,20 +113,29 @@ export function InventoryContent() {
 
     const newItem: InventoryItem = { code, name, amount, threshold }
 
-    setInventory((prev) => {
-      const exists = prev.find((p) => p.code === code)
+    try {
       if (editing) {
-        // editing existing entry: replace by code
-        return prev.map((p) => (p.code === editing.code ? newItem : p))
+        const res = await fetch('/api/inventory', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newItem) })
+        const json = await res.json()
+        if (json?.success) {
+          await loadInventory()
+        } else {
+          alert('Failed to update: ' + (json?.error || 'unknown'))
+        }
+      } else {
+        const res = await fetch('/api/inventory', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(newItem) })
+        const json = await res.json()
+        if (json?.success) {
+          await loadInventory()
+        } else {
+          alert('Failed to create: ' + (json?.error || 'unknown'))
+        }
       }
-      if (exists) {
-        // prevent duplicate codes
-        return prev.map((p) => (p.code === code ? newItem : p))
-      }
-      return [newItem, ...prev]
-    })
-
-    setOpen(false)
+      setOpen(false)
+    } catch (e) {
+      console.error('[v0] submit failed', e)
+      alert('Failed to submit')
+    }
   }
 
   return (
@@ -123,8 +151,11 @@ export function InventoryContent() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {inventory.map((item) => {
+      {loading ? (
+        <div className="col-span-full text-center text-muted-foreground py-12">Loading inventory...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {inventory.map((item) => {
           const percentage = (item.amount / item.threshold) * 100
           const isLow = item.amount < item.threshold
 
@@ -192,8 +223,9 @@ export function InventoryContent() {
               </CardContent>
             </Card>
           )
-        })}
-      </div>
+          })}
+        </div>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-md">
