@@ -4,6 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { LayoutDashboard, Calculator, ArrowLeftRight, TrendingUp, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { UserMenu } from "@/components/auth/user-menu"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -51,7 +52,10 @@ export function AppSidebar() {
       </nav>
 
       <div className="p-4 border-t border-border">
-        <div className="text-xs text-muted-foreground">Last updated: {new Date().toLocaleTimeString()}</div>
+        <div className="flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">Last updated: {new Date().toLocaleTimeString()}</div>
+          <UserMenu />
+        </div>
       </div>
     </aside>
   )
