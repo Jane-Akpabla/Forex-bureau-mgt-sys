@@ -1,3 +1,6 @@
+'use client'
+
+import { useState } from "react"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -5,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Search, Download, Filter } from "lucide-react"
 import { SimpleAddTransaction } from "@/components/simple-add-transaction"
 
-const transactions = [
+const initialTransactions = [
   {
     id: "TXN001",
     date: "2025-03-10",
@@ -105,6 +108,12 @@ const transactions = [
 ]
 
 export function TransactionsContent() {
+  const [transactions, setTransactions] = useState(initialTransactions)
+
+  const handleTransactionAdded = (transaction: any) => {
+    setTransactions([transaction, ...transactions])
+  }
+
   return (
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
@@ -113,12 +122,7 @@ export function TransactionsContent() {
           <p className="text-muted-foreground mt-1">View and manage all currency exchanges</p>
         </div>
         <div className="flex gap-3">
-          <SimpleAddTransaction onTransactionAdded={(transaction) => {
-            // Add the new transaction to the beginning of the array
-            transactions.unshift(transaction)
-            // Force re-render by updating the component
-            window.location.reload()
-          }} />
+          <SimpleAddTransaction onTransactionAdded={handleTransactionAdded} />
           <Button variant="outline" className="border-border text-foreground hover:bg-secondary bg-transparent">
             <Filter className="h-4 w-4 mr-2" />
             Filter
