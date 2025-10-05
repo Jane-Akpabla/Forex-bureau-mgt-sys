@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation"
 import { LayoutDashboard, Calculator, ArrowLeftRight, TrendingUp, Wallet } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { UserMenu } from "@/components/auth/user-menu"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -52,9 +53,12 @@ export function AppSidebar() {
       </nav>
 
       <div className="p-4 border-t border-border">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-3">
           <div className="text-xs text-muted-foreground">Last updated: {new Date().toLocaleTimeString()}</div>
           <UserMenu />
+        </div>
+        <div className="flex items-center justify-center">
+          <ThemeToggle />
         </div>
       </div>
     </aside>
